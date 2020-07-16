@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import hashlib
 import datetime
 import export_pb2 # https://github.com/google/exposure-notifications-server/blob/main/internal/pb/export/export.proto
 import json
@@ -38,9 +39,11 @@ for name, url in list_urls:
         for item in json.load(fd):
             file_urls.append(item['url'])
 
-i = 0
+# i = 0
 for url in file_urls:
-    name = os.path.basename(urllib.parse.urlparse(url).path)
+    # i += 1
+    name = hashlib.sha256(url.encode()).hexdigest()[:8]
+    # name = os.path.basename(urllib.parse.urlparse(url).path)
     # print(name)
     with zipfile.ZipFile(cached_fetch(name, url)) as zip:
         with zip.open('export.bin') as bin:
@@ -48,12 +51,10 @@ for url in file_urls:
             teke = export_pb2.TemporaryExposureKeyExport.FromString(bin.read())
             # print(teke)
             for key in teke.keys:
-                print('#{}'.format(i))
-                i += 1
                 # print('  key_data: {}'.format(key.key_data))
                 ts = key.rolling_start_interval_number * 10 * 60
-                print('  timestamp: {}'.format(datetime.datetime.fromtimestamp(ts)))
+                print('{}: timestamp: {}'.format(name, datetime.datetime.fromtimestamp(ts)))
                 if key.HasField('report_type'):
                     name = export_pb2.TemporaryExposureKey.ReportType.Name(key.report_type)
-                    print('  report_type: {}'.format(name))
+                    print(' report_type: {}'.format(name))
                 # print(key)
