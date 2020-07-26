@@ -18,13 +18,14 @@ list_urls = [
     ('list2.json', cdn_prefix + '441/list.json'),
 ]
 
+now = datetime.datetime.now()
+
 def cached_fetch(name, url):
     path = os.path.join(cache_dir, name)
     cache_hit = False
     try:
         rv = os.stat(path)
         cached = datetime.datetime.fromtimestamp(rv.st_mtime)
-        now = datetime.datetime.now()
         cache_hit = now < cached + datetime.timedelta(hours=1)
     except FileNotFoundError as e:
         pass
@@ -37,7 +38,9 @@ file_urls = []
 for name, url in list_urls:
     with open(cached_fetch(name, url)) as fd:
         for item in json.load(fd):
-            file_urls.append(item['url'])
+            mtime =  datetime.datetime.fromtimestamp(item['created'] / 1000.0)
+            if mtime > now - datetime.timedelta(days=3):
+                file_urls.append(item['url'])
 
 # i = 0
 for url in file_urls:
@@ -53,8 +56,9 @@ for url in file_urls:
             for key in teke.keys:
                 # print('  key_data: {}'.format(key.key_data))
                 ts = key.rolling_start_interval_number * 10 * 60
-                print('{}: timestamp: {}'.format(name, datetime.datetime.fromtimestamp(ts)))
-                if key.HasField('report_type'):
-                    name = export_pb2.TemporaryExposureKey.ReportType.Name(key.report_type)
-                    print(' report_type: {}'.format(name))
+                # dur = key.rolling_period * 10
+                print('{}: {}'.format(key.key_data.hex(), datetime.datetime.fromtimestamp(ts)))
+                # if key.HasField('report_type'):
+                #     name = export_pb2.TemporaryExposureKey.ReportType.Name(key.report_type)
+                #     print(' report_type: {}'.format(name))
                 # print(key)
